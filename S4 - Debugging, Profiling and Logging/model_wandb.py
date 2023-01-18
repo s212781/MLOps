@@ -2,6 +2,7 @@ import torch
 from torch import flatten
 from torch import nn
 import matplotlib.pyplot as plt
+import wandb
 
 
 class MyAwesomeModel(nn.Module):
@@ -51,6 +52,8 @@ class MyAwesomeModel(nn.Module):
 
 
 def train(model, trainloader, testloader, criterion, optimizer=None, epochs=5, print_every=40):
+    wandb.init(project="wandb_ex")
+    wandb.watch(model, log_freq=100)
     if optimizer is None:
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
     steps = 0
@@ -78,13 +81,15 @@ def train(model, trainloader, testloader, criterion, optimizer=None, epochs=5, p
             running_loss += loss.item()
             loss_total.append(loss.item())
             if steps % print_every == 0:
+                wandb.log({"loss": loss})
                 # Model in inference mode, dropout is off
                 model.eval()
 
                 # Turn off gradients for validation, will speed up inference
                 with torch.no_grad():
-                    test_loss, accuracy = validation(
-                        model, testloader, criterion)
+                    test_loss, accuracy = validation(model, testloader, criterion)
+                    wandb.log({"test_loss": test_loss})
+                    wandb.log({"accuracy": accuracy})
 
                 print("Epoch: {}/{}.. ".format(e+1, epochs),
                       "Training Loss: {:.3f}.. ".format(
